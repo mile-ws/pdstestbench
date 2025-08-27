@@ -12,8 +12,13 @@ import scipy as sc
 
 
 N = 8
-nn = np.arange(N)
+n = np.arange(N)
 
 x = 3 * np.sin(n * np.pi / 2) + 4
+
+
+
+    
+
 
 

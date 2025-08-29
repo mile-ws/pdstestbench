@@ -2,10 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Parámetros
-N = 16  # cantidad de muestras
+N = 1000  # cantidad de muestras
 n = np.arange(N)
-f = 3   # frecuencia discreta
-x = np.sin(2*np.pi*f*n/N)
+fx = 3   # frecuencia discreta
+fs = 1000
+x = np.sin(2 * np.pi * fx * n/N)
+deltaF = fs / N
 
 # ---------- DFT MANUAL ----------
 X_manual = []
@@ -20,14 +22,15 @@ X_manual = np.array(X_manual)
 X_fft = np.fft.fft(x)
 
 # ---------- Comparación ----------
-plt.figure(figsize=(10,4))
+plt.figure(1)
 
-plt.subplot(1,2,1)
 plt.stem(np.abs(X_manual), basefmt=" ")
 plt.title("DFT manual |X[k]|")
 plt.xlabel("k")
 
-plt.subplot(1,2,2)
+
+plt.figure(2)
+
 plt.stem(np.abs(X_fft), basefmt=" ")
 plt.title("FFT NumPy |X[k]|")
 plt.xlabel("k")

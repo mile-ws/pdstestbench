@@ -25,7 +25,7 @@ Ts = 1 / fs
 
 
 # grilla temporal
-tiempo1, x1 = mi_funcion_sen(A0 = 1, offset = 0, fx = 1 , phase = 0, nn = N, fs = fs)
+tiempo1, x1 = mi_funcion_sen(A0 = 1, offset = 0, fx = 1 , phase = 0, nn = N, fs = fs/2)
 
 tiempo2, x2 = mi_funcion_sen(A0 = np.sqrt(2), offset = 0, fx = (N/4) * deltaF, phase = 0, nn = N, fs = fs)
 tiempo3, x3 = mi_funcion_sen(A0 = 1, offset = 0, fx = ((N/4) + 0.5) * deltaF , phase = 0, nn = N, fs = fs)
@@ -78,9 +78,34 @@ plt.legend()
 
 
 sumaModulo = np.sum(modulo_cuadrado)
-sumaCuadrado = np.sum(x2 ** 2)
+sumaCuadrado = np.sum(np.abs(X2) ** 2)
 
 if sumaModulo == sumaCuadrado:
     print("Se cumple Parseval")
 else: 
     print("No se cumple Parseval")
+    
+
+##Zero padding
+
+zeroPadding = np.zeros(10 * N)
+zeroPadding[4500:5500] = x2 #x1 x1 x1 x1  0 0 0 0 0 0 0 0
+zeroPadding[0:N] = x2 #x1 x1 x1 x1  0 0 0 0 0 0 0 0
+
+fft_zeroPadding = fft(zeroPadding)
+fft_zeroPadding1 = fft(zeroPadding)
+
+
+
+freqs1 = np.arange(10 * N) * deltaF
+#freq1 = np.abs(fft_zeroPadding) ** 2
+
+
+plt.figure()
+plt.plot(freqs1, np.log10(fft_zeroPadding)*10, '--',label = 'Zero Padding')
+plt.plot(freqs1, np.log10(fft_zeroPadding1)*10, '--',label = 'Zero Padding')
+
+plt.xlim(0, 10*N)
+plt.legend()
+
+

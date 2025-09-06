@@ -123,19 +123,20 @@ plt.show()
     
 
 ##CALCULAR LA RESPUESTA AL IMPULSO
-N = 50
-delta = np.zeros(N)
+delta = np.zeros(len(x_senoidal))
 delta[0] = 1
 
 h = signal.lfilter(b, a, delta)  #respuesta al impulso
 
-y = np.convolve(x_senoidal, h)[:len(x_senoidal)]
+y_conv = np.convolve(x_senoidal, h)[:len(x_senoidal)] #salida
 
 plt.figure()
-plt.plot(t, y)
-plt.title("Señal de salida senoidal generada con respuesta al impulso")
+plt.plot(t, y_conv, "o", color='orange' , label="Y convolucion")
+plt.plot(t, salidas[0], label="Salida Y")
+plt.title("Señal de salida senoidal")
 plt.xlabel("Tiempo [s]")
 plt.ylabel("Amplitud [V]")
+plt.legend()
 plt.grid(True)
 plt.show()
 
@@ -151,25 +152,18 @@ b1[0] = 1
 b1[10] = 3
 
 h1 = signal.lfilter(b1, a1, delta)  #respuesta al impulso
-
-y1= np.convolve(x_senoidal, h1)[:len(x_senoidal)]
+y1_conv= np.convolve(x_senoidal, h1)[:len(x_senoidal)]
+y1 = signal.lfilter(b1, a1, x_senoidal)
 
 plt.figure()
-plt.subplot(2,2,1)
-plt.plot(h1)
-plt.title("Respuesta al impulso h1[n]")
-plt.xlabel("n")
-plt.ylabel("h1[n]")
-plt.grid(True)
-
-plt.subplot(2,2,2)
-#plt.plot(t, x_senoidal, label="Entrada x[n]")
-plt.plot(t, y1, label="Salida y[n]")
-plt.title("Salida del sistema 1")
-plt.xlabel("Tiempo [s]")
+plt.plot(t, y1, label="Salida y1[n]")
+plt.plot(t, y1_conv, "o",color='orange' , label="Y convolucion")
+plt.title("Sistema 1")
+plt.xlabel("Tiempo")
 plt.ylabel("Amplitud")
 plt.legend()
 plt.grid(True)
+
 
 #𝑦[𝑛]-3⋅𝑦[𝑛−10]=𝑥[𝑛]
 
@@ -180,26 +174,92 @@ a2[10] = -3
 b2 = np.array([1]) #coeficientes de x
 
 h2 = signal.lfilter(b2, a2, delta)  #respuesta al impulso
+y2_conv = np.convolve(x_senoidal, h2)[:len(x_senoidal)]
+y2 = signal.lfilter(b2, a2, x_senoidal)
 
-y2 = np.convolve(x_senoidal, h2)[:len(x_senoidal)]
 
-plt.subplot(2,2,3)
-plt.plot(h2)
-plt.title("Respuesta al impulso h2[n]")
-plt.xlabel("n")
-plt.ylabel("h2[n]")
-plt.grid(True)
-
-plt.subplot(2,2,4)
-#plt.plot(t, x_senoidal, label="Entrada x[n]")
-plt.plot(t, y2, label="Salida y[n]")
-plt.title("Salida del sistema 2")
-plt.xlabel("Tiempo [s]")
+plt.figure()
+plt.plot(t, y2, label="Salida y2[n]")
+plt.plot(t, y2_conv, "o",color='orange' , label="Y convolucion")
+plt.title("Sistema 2")
+plt.xlabel("Tiempo")
 plt.ylabel("Amplitud")
 plt.legend()
 plt.grid(True)
 
 plt.tight_layout()
+plt.show()
+
+
+# Bonus Windkessel
+
+# Parámetros fisiológicos (circulación sistémica)
+C = 5.0     # mL/mmHg
+R = 0.2     # mmHg·s/mL
+Ts_wk = 0.01   # paso temporal [s]
+T_wk = 2       # tiempo total [s]
+N_wk = int(T_wk / Ts_wk)
+
+# Señal de entrada: flujo Q(t)
+t_wk = np.arange(N_wk) * Ts_wk
+Q = 10 * (t_wk < 1)   # flujo constante de 10 mL/s durante 1 segundo
+
+# Inicialización de presión
+P = np.zeros(N_wk)
+P[0] = 0  # condición inicial
+
+# Coeficientes para Backward Euler
+alpha = C / Ts_wk
+den = alpha + 1 / R
+
+# Iteración recursiva
+for n in range(1, N_wk):
+    P[n] = (alpha * P[n-1] + Q[n]) / den
+
+# Graficar resultados
+plt.figure(figsize=(10,5))
+plt.plot(t_wk, Q, label="Flujo Q(t) [mL/s]", linestyle="--")
+plt.plot(t_wk, P, label="Presión P(t) [mmHg]", linewidth=2)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Magnitud")
+plt.title("Modelo Windkessel discretizado (Backward Euler)")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Parámetros fisiológicos
+C = 5.0       # mL/mmHg
+R = 0.2       # mmHg·s/mL
+Ts = 0.01     # paso temporal [s]
+  # tiempo total [s] para varios latidos
+N = int(T_total / Ts)
+
+# Señal de entrada: flujo Q(t) pulsátil (simula 1 Hz, 60 latidos/min)
+f_heart = 1.0  # Hz
+t = np.arange(N) * Ts
+Q = 10 * (np.sin(2 * np.pi * f_heart * t) > 0)  # tren de pulsos
+
+# Inicialización de presión
+P = np.zeros(N)
+P[0] = 0  # condición inicial
+
+# Coeficientes para Backward Euler
+alpha = C / Ts
+den = alpha + 1/R
+
+# Iteración recursiva (Backward Euler)
+for n in range(1, N):
+    P[n] = (alpha * P[n-1] + Q[n]) / den
+
+# Graficar resultados
+plt.figure(figsize=(10,5))
+plt.plot(t, Q, label="Flujo Q(t) [mL/s]", linestyle="--")
+plt.plot(t, P, label="Presión P(t) [mmHg]", linewidth=2)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Magnitud")
+plt.title("Modelo Windkessel con flujo pulsátil")
+plt.legend()
+plt.grid(True)
 plt.show()
 
 

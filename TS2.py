@@ -71,6 +71,7 @@ fig, axs = plt.subplots(6, 1, figsize=(10, 12))  # 6 filas, 1 columna
 
 # Señal senoidal
 axs[0].plot(t, salidas[0], label = f"P = {np.mean(salidas[0]**2):.2f}")
+axs[0].plot(t, x_senoidal, label = "Entrada")
 axs[0].set_title("Señal senoidal 2 kHz")
 axs[0].set_xlabel("Tiempo [s]")
 axs[0].set_ylabel("Amplitud [V]")
@@ -79,6 +80,7 @@ axs[0].grid(True)
 
 # Amplificada y desfasada
 axs[1].plot(t, salidas[1], label = f"P = {np.mean(salidas[1]**2):.2f}")
+axs[1].plot(t, x_desfazada, label = "Entrada")
 axs[1].set_title("Amplificada y desfasada")
 axs[1].set_xlabel("Tiempo [s]")
 axs[1].set_ylabel("Amplitud [V]")
@@ -87,6 +89,7 @@ axs[1].grid(True)
 
 # Modulacion en amplitud
 axs[2].plot(t, salidas[2], label = f"P = {np.mean(salidas[2]**2):.2f}")
+axs[2].plot(t, x_modulada, label = "Entrada")
 axs[2].set_title("Modulada con sen f/2")
 axs[2].set_xlabel("Tiempo [s]")
 axs[2].set_ylabel("Amplitud [V]")
@@ -95,6 +98,7 @@ axs[2].grid(True)
 
 # Señal recortada
 axs[3].plot(t, salidas[3], label = f"P = {np.mean(salidas[3]**2):.2f}")
+axs[3].plot(t, x_recortada, label = "Entrada")
 axs[3].set_title("Recorte al 75%")
 axs[3].set_xlabel("Tiempo [s]")
 axs[3].set_ylabel("Amplitud [V]")
@@ -103,6 +107,7 @@ axs[3].grid(True)
 
 # Señal cuadrada
 axs[4].plot(t, salidas[4], label = f"P = {np.mean(salidas[4]**2):.2f}")
+axs[4].plot(t, x_cuadrada, label = "Entrada")
 axs[4].set_title("Señal cuadrada")
 axs[4].set_xlabel("Tiempo [s]")
 axs[4].set_ylabel("Amplitud [V]")
@@ -111,6 +116,7 @@ axs[4].grid(True)
 
 # Pulso rectangular
 axs[5].plot(t, salidas[5], label = f"E = {np.sum(salidas[5]**2):.2f}")
+axs[5].plot(t, x_pulsos, label = "Entrada")
 axs[5].set_title("Pulso 10 ms")
 axs[5].set_xlabel("Tiempo [s]")
 axs[5].set_ylabel("Amplitud [V]")
@@ -227,40 +233,6 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-# Parámetros fisiológicos
-C = 5.0       # mL/mmHg
-R = 0.2       # mmHg·s/mL
-Ts = 0.01     # paso temporal [s]
-  # tiempo total [s] para varios latidos
-N = int(T_total / Ts)
-
-# Señal de entrada: flujo Q(t) pulsátil (simula 1 Hz, 60 latidos/min)
-f_heart = 1.0  # Hz
-t = np.arange(N) * Ts
-Q = 10 * (np.sin(2 * np.pi * f_heart * t) > 0)  # tren de pulsos
-
-# Inicialización de presión
-P = np.zeros(N)
-P[0] = 0  # condición inicial
-
-# Coeficientes para Backward Euler
-alpha = C / Ts
-den = alpha + 1/R
-
-# Iteración recursiva (Backward Euler)
-for n in range(1, N):
-    P[n] = (alpha * P[n-1] + Q[n]) / den
-
-# Graficar resultados
-plt.figure(figsize=(10,5))
-plt.plot(t, Q, label="Flujo Q(t) [mL/s]", linestyle="--")
-plt.plot(t, P, label="Presión P(t) [mmHg]", linewidth=2)
-plt.xlabel("Tiempo [s]")
-plt.ylabel("Magnitud")
-plt.title("Modelo Windkessel con flujo pulsátil")
-plt.legend()
-plt.grid(True)
-plt.show()
 
 
 

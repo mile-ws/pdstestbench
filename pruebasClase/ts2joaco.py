@@ -21,7 +21,7 @@ import TS1joaco
 # HECHO --> Hallar la respuesta al impulso y usando la misma, repetir la generación de la señal de salida para alguna de las señales de entrada consideradas en el punto anterior.
 # En cada caso indique la frecuencia de muestreo, el tiempo de simulación y la potencia o energía de la señal de salida.
 # =============================================================================
-fs = 1000
+fs = 50000
 N = 500
 f = 2
 Ts = 1/fs
@@ -53,11 +53,12 @@ def plot_salida(x, nombre):
     plt.title(f"Respuesta a {nombre}")
     plt.show()
 
-#plot_salida(TS1joaco.xx, "xx")
-#plot_salida(TS1joaco.x1, "x1")
-#plot_salida(TS1joaco.x2, "x2")
-#plot_salida(TS1joaco.x3, "x3")
-#plot_salida(TS1joaco.x4, "x4")
+plot_salida(TS1joaco.xx, "xx")
+plot_salida(TS1joaco.x1, "x1")
+plot_salida(TS1joaco.x2, "x2")
+plot_salida(TS1joaco.x3, "x3")
+plot_salida(TS1joaco.x4, "x4")
+plot_salida(TS1joaco.pulso, "pulso")
 
 #tt, TS1.xx = TS1.mi_funcion_sen(vmax=1, dc=0, f=f, fase=0, N = N, fs=fs)
 

@@ -22,7 +22,7 @@ from scipy.signal import correlate, correlation_lags
 # En cada caso indique tiempo entre muestras, número de muestras y potencia.
 #print("###### Ejercicio 1 ######")
 
-fs = 50000
+fs = 100000
 N = 500
 f = 2000
 Ts = 1/fs
@@ -51,7 +51,11 @@ x2 = modulacion(vmax=1, dc=0, f=f, fase=0, N = N, fs=fs)
 x3 = np.clip(xx,-0.75,0.75,out=None)
 
 #x4 = sp.square(2 * np.pi * 2*f * tt) #multiplico f por dos porque me pide 4kHz. Esta es con la funcion de scipy
-x4 = np.sign(np.sin(2 * np.pi * 2*f * tt)) ##esta es haciendolo con numpy y viendo el signo de la senoidal
+#x4 = np.sign(np.sin(2 * np.pi * 2*f * tt)) ##esta es haciendolo con numpy y viendo el signo de la senoidal
+x4 = signal.square(2*np.pi*4000*tt, duty=0.5)
+x4 = x4 - np.mean(x4)
+print("mean x4:", np.mean(x4))      # ~ 0.0
+print("sum x4:", np.sum(x4))        # ~ 0
 
 # aca hago el del puslo. Como Npulso = Tpulso . fs. Voy a tener 200 muestras
 # como mi N lo tengo fijo en 500. voy a tener 300 muestras que estan en 0. Si yo aumento N por ejemplo, siempre voy a tener fijas 200muestras que valen 1 y las N-200=0.

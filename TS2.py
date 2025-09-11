@@ -64,7 +64,12 @@ for i, x in enumerate(entradas):
     y = signal.lfilter(b, a, x)
     salidas.append(y)
     
-    
+delta = np.zeros(len(x_senoidal))
+delta[0] = 1
+
+h = signal.lfilter(b, a, delta)  #respuesta al impulso
+
+y_conv = np.convolve(x_senoidal, h)[:len(x_senoidal)] #salida    
     
 #Graficos
 fig, axs = plt.subplots(6, 1, figsize=(10, 12))  # 6 filas, 1 columna
@@ -72,6 +77,7 @@ fig, axs = plt.subplots(6, 1, figsize=(10, 12))  # 6 filas, 1 columna
 # Señal senoidal
 axs[0].plot(t, salidas[0], label = f"P = {np.mean(salidas[0]**2):.2f}")
 axs[0].plot(t, x_senoidal, label = "Entrada")
+axs[0].plot(t, y_conv, "--", color='orange' , label="Y convolucion")
 axs[0].set_title("Señal senoidal 2 kHz")
 axs[0].set_xlabel("Tiempo [s]")
 axs[0].set_ylabel("Amplitud [V]")
@@ -127,7 +133,7 @@ axs[5].grid(True)
 plt.tight_layout()
 plt.show()
     
-
+'''
 ##CALCULAR LA RESPUESTA AL IMPULSO
 delta = np.zeros(len(x_senoidal))
 delta[0] = 1
@@ -145,7 +151,7 @@ plt.ylabel("Amplitud [V]")
 plt.legend()
 plt.grid(True)
 plt.show()
-
+'''
 ##2) HALLAR RTA AL IMPULSO Y SALIDA A UNA SENAL SENOIDAL
 
 #𝑦[𝑛]=𝑥[𝑛]+3⋅𝑥[𝑛−10]

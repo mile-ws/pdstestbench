@@ -17,9 +17,9 @@ def mi_funcion_cos (A0, offset, fx, phase, nn, fs):
     return tiempo, x
 
 #todos estos parametros sirven si no defino mi funcion, uso np.sin(2 * np.pi * fx * tiempo) directamente
-N = 1000 #si pongo 31 queda igual al del holton, si pongo otro N se ve mas colapsado
+N = 31 #si pongo 31 queda igual al del holton, si pongo otro N se ve mas colapsado
 #fs = 500 ## si mi fs != a N estoy cambiando mi relacion de 1/deltaf = N.Ts = 1 y cambio el tiempo.
-fs = 1000
+fs = 31
   ##esto quiere decir que yo voy a tomar 1000 muestras por segundo. 
 deltaF = fs / N
 Ts = 1 / fs
@@ -40,7 +40,7 @@ ventana_Hann = signal.windows.hann(N)
 ventana_FT = signal.windows.flattop(N)
 
 
-Nfft = 150
+Nfft = 2**14
 
 k = (np.arange(-Nfft//2, Nfft//2))  
 freq = k * deltaF

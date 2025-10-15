@@ -69,18 +69,31 @@ delta[0] = 1
 
 h = signal.lfilter(b, a, delta)  #respuesta al impulso
 
-y_conv = np.convolve(x_senoidal, h)[:len(x_senoidal)] #salida    
-    
+y_conv = np.convolve(x_senoidal, h, mode='same')#[:len(x_senoidal)] #salida    
+y_conv_full = np.convolve(x_senoidal, h, mode= 'full')
+t_full = np.arange(len(y_conv_full)) / fs
+
+plt.figure()
+plt.plot(t_full*1000, y_conv_full, label='Convolución completa', color='C0')
+plt.plot(t[:len(y_conv)]*1000, y_conv, label='Convolución (recortada)', color='C1')
+plt.axvline(len(x_senoidal)/fs*1000, color='r', linestyle='--', label='Fin señal original')
+plt.xlabel('Tiempo [ms]')
+plt.ylabel('Amplitud')
+plt.title('Efecto de borde en la convolución')
+plt.xlim(0, 30) 
+plt.legend()
+plt.grid(True)
+
 #Graficos
-fig, axs = plt.subplots(6, 1, figsize=(10, 12))  # 6 filas, 1 columna
+fig, axs = plt.subplots(7, 1, figsize=(10, 12))  # 6 filas, 1 columna
 
 # Señal senoidal
 axs[0].plot(t, salidas[0], label = f"P = {np.mean(salidas[0]**2):.2f}")
 axs[0].plot(t, x_senoidal, label = "Entrada")
-axs[0].plot(t, y_conv, "--", color='orange' , label="Y convolucion")
 axs[0].set_title("Señal senoidal 2 kHz")
 axs[0].set_xlabel("Tiempo [s]")
 axs[0].set_ylabel("Amplitud [V]")
+axs[0].set_xlim(0, 0.005)
 axs[0].legend()
 axs[0].grid(True)
 
@@ -90,6 +103,7 @@ axs[1].plot(t, x_desfazada, label = "Entrada")
 axs[1].set_title("Amplificada y desfasada")
 axs[1].set_xlabel("Tiempo [s]")
 axs[1].set_ylabel("Amplitud [V]")
+axs[1].set_xlim(0, 0.005)
 axs[1].legend()
 axs[1].grid(True)
 
@@ -99,6 +113,7 @@ axs[2].plot(t, x_modulada, label = "Entrada")
 axs[2].set_title("Modulada con sen f/2")
 axs[2].set_xlabel("Tiempo [s]")
 axs[2].set_ylabel("Amplitud [V]")
+axs[2].set_xlim(0, 0.005)
 axs[2].legend()
 axs[2].grid(True)
 
@@ -108,6 +123,7 @@ axs[3].plot(t, x_recortada, label = "Entrada")
 axs[3].set_title("Recorte al 75%")
 axs[3].set_xlabel("Tiempo [s]")
 axs[3].set_ylabel("Amplitud [V]")
+axs[3].set_xlim(0, 0.005)
 axs[3].legend()
 axs[3].grid(True)
 
@@ -117,41 +133,142 @@ axs[4].plot(t, x_cuadrada, label = "Entrada")
 axs[4].set_title("Señal cuadrada")
 axs[4].set_xlabel("Tiempo [s]")
 axs[4].set_ylabel("Amplitud [V]")
+axs[4].set_xlim(0, 0.005)
+axs[4].legend()
+axs[4].grid(True)
+
+# Entrada (pulso)
+axs[5].plot(t, x_pulsos, "orange", label="Entrada (Pulso 10 ms)")
+axs[5].set_title("Entrada Pulso 10 ms")
+axs[5].set_xlabel("Tiempo [s]")
+axs[5].set_ylabel("Amplitud [V]")
+axs[5].set_xlim(0, 0.02)
+axs[5].legend()
+axs[5].grid(True)
+
+# Salida (respuesta al pulso)
+axs[6].plot(t, salidas[5], label=f"Salida – E = {np.sum(salidas[5]**2):.2f}")
+axs[6].set_title("Salida del sistema ante pulso de 10 ms")
+axs[6].set_xlabel("Tiempo [s]")
+axs[6].set_ylabel("Amplitud [V]")
+axs[6].set_xlim(0, 0.02)   
+axs[6].legend()
+axs[6].grid(True)
+
+
+
+# Ajustar todo
+plt.tight_layout()
+plt.show()
+    
+#CALCULAR LA RESPUESTA AL IMPULSO
+
+#senoidal
+delta_sen = np.zeros(len(x_senoidal))
+delta_sen[0] = 1
+h_sen = signal.lfilter(b, a, delta_sen)  #respuesta al impulso
+y_conv_sen = np.convolve(x_senoidal, h_sen)[:len(x_senoidal)] #salida
+
+#amplificada
+delta_amp = np.zeros(len(x_desfazada))
+delta_amp[0] = 1
+h_amp = signal.lfilter(b, a, delta_amp)  #respuesta al impulso
+y_conv_amp = np.convolve(x_desfazada, h_amp)[:len(x_desfazada)] #salida
+
+#modulada
+delta_mod = np.zeros(len(x_modulada))
+delta_mod[0] = 1
+h_mod = signal.lfilter(b, a, delta_mod)  #respuesta al impulso
+y_conv_mod = np.convolve(x_modulada, h_mod)[:len(x_modulada)] #salida
+
+#recortada
+delta_rec = np.zeros(len(x_recortada))
+delta_rec[0] = 1
+h_rec = signal.lfilter(b, a, delta_rec)  #respuesta al impulso
+y_conv_rec = np.convolve(x_recortada, h_rec)[:len(x_recortada)] #salida
+
+#cuadrada
+delta_cuad = np.zeros(len(x_cuadrada))
+delta_cuad[0] = 1
+h_cuad = signal.lfilter(b, a, delta_cuad)  #respuesta al impulso
+y_conv_cuad = np.convolve(x_cuadrada, h_cuad)[:len(x_cuadrada)] #salida
+
+#pulso
+delta_pul = np.zeros(len(x_pulsos))
+delta_pul[0] = 1
+h_pul = signal.lfilter(b, a, delta_pul)  #respuesta al impulso
+y_conv_pul = np.convolve(x_pulsos, h_pul)[:len(x_pulsos)] #sa"lida
+
+
+
+
+#Graficos
+fig, axs = plt.subplots(6, 1, figsize=(10, 12))  # 6 filas, 1 columna
+
+# Señal senoidal
+axs[0].plot(t, salidas[0], label ="Salida Y")
+axs[0].plot(t, y_conv_sen, "o", color='orange' , label="Y convolucion")
+axs[0].set_title("Señal de salida senoidal")
+axs[0].set_xlabel("Tiempo [s]")
+axs[0].set_ylabel("Amplitud")
+axs[0].set_xlim(0, 0.005)
+axs[0].legend()
+axs[0].grid(True)
+
+# Amplificada y desfasada
+axs[1].plot(t, salidas[1], label = "Salida Y")
+axs[1].plot(t, y_conv_amp, "o", color='orange' , label = "Y convolucion")
+axs[1].set_title("Señal de salida Amplificada y desfasada")
+axs[1].set_xlabel("Tiempo [s]")
+axs[1].set_ylabel("Amplitud")
+axs[1].set_xlim(0, 0.005)
+axs[1].legend()
+axs[1].grid(True)
+
+# Modulacion en amplitud
+axs[2].plot(t, salidas[2], label = "Salida Y")
+axs[2].plot(t, y_conv_mod,"o", color='orange' , label = "Y convolucion")
+axs[2].set_title("Señal de salida Modulada con sen f/2")
+axs[2].set_xlabel("Tiempo [s]")
+axs[2].set_ylabel("Amplitud")
+axs[2].set_xlim(0, 0.005)
+axs[2].legend()
+axs[2].grid(True)
+
+# Señal recortada
+axs[3].plot(t, salidas[3], label ="Salida Y")
+axs[3].plot(t, y_conv_rec,"o", color='orange' , label = "Y convolucion")
+axs[3].set_title("Señal de salida Recorte al 75%")
+axs[3].set_xlabel("Tiempo [s]")
+axs[3].set_ylabel("Amplitud")
+axs[3].set_xlim(0, 0.005)
+axs[3].legend()
+axs[3].grid(True)
+
+# Señal cuadrada
+axs[4].plot(t, salidas[4], label = "Salida Y")
+axs[4].plot(t, y_conv_cuad,"o", color='orange' , label = "Y convolucion")
+axs[4].set_title("Señal de salida cuadrada")
+axs[4].set_xlabel("Tiempo [s]")
+axs[4].set_ylabel("Amplitud")
+axs[4].set_xlim(0, 0.005)
 axs[4].legend()
 axs[4].grid(True)
 
 # Pulso rectangular
-axs[5].plot(t, salidas[5], label = f"E = {np.sum(salidas[5]**2):.2f}")
-axs[5].plot(t, x_pulsos, label = "Entrada")
+axs[5].plot(t, salidas[5], label = "Salida Y")
+axs[5].plot(t, y_conv_pul, "o", color='orange' , label = "Y convolucion")
 axs[5].set_title("Pulso 10 ms")
 axs[5].set_xlabel("Tiempo [s]")
-axs[5].set_ylabel("Amplitud [V]")
+axs[5].set_ylabel("Amplitud")
+axs[4].set_xlim(0, 0.005)
 axs[5].legend()
 axs[5].grid(True)
 
 # Ajustar todo
 plt.tight_layout()
 plt.show()
-    
-'''
-##CALCULAR LA RESPUESTA AL IMPULSO
-delta = np.zeros(len(x_senoidal))
-delta[0] = 1
 
-h = signal.lfilter(b, a, delta)  #respuesta al impulso
-
-y_conv = np.convolve(x_senoidal, h)[:len(x_senoidal)] #salida
-
-plt.figure()
-plt.plot(t, y_conv, "o", color='orange' , label="Y convolucion")
-plt.plot(t, salidas[0], label="Salida Y")
-plt.title("Señal de salida senoidal")
-plt.xlabel("Tiempo [s]")
-plt.ylabel("Amplitud [V]")
-plt.legend()
-plt.grid(True)
-plt.show()
-'''
 ##2) HALLAR RTA AL IMPULSO Y SALIDA A UNA SENAL SENOIDAL
 
 #𝑦[𝑛]=𝑥[𝑛]+3⋅𝑥[𝑛−10]
@@ -170,6 +287,7 @@ y1 = signal.lfilter(b1, a1, x_senoidal)
 plt.figure()
 plt.plot(t, y1, label="Salida y1[n]")
 plt.plot(t, y1_conv, "o",color='orange' , label="Y convolucion")
+plt.plot(t, h1, "-",color='red' , label="Respuesta al impulso")
 plt.title("Sistema 1")
 plt.xlabel("Tiempo")
 plt.ylabel("Amplitud")
@@ -193,6 +311,7 @@ y2 = signal.lfilter(b2, a2, x_senoidal)
 plt.figure()
 plt.plot(t, y2, label="Salida y2[n]")
 plt.plot(t, y2_conv, "o",color='orange' , label="Y convolucion")
+plt.plot(t, h2, "-",color='red' , label="Respuesta al impulso")
 plt.title("Sistema 2")
 plt.xlabel("Tiempo")
 plt.ylabel("Amplitud")

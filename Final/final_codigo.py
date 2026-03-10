@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import wfdb as wfdb
 from scipy import signal
 import scipy.io as sio
+from numpy.fft import fft
 
 from pytc2.sistemas_lineales import plot_plantilla
 
@@ -19,12 +20,16 @@ from pytc2.sistemas_lineales import plot_plantilla
 archivo = wfdb.rdrecord('datos/later_induced/icehg606')
 
 senal = archivo.p_signal      # matriz (N muestras × canales)
-fs = archivo.fs                # frecuencia de muestreo = 20 --> nyquist = 10
 channels = archivo.sig_name    # nombres de los canales
-
+fs = archivo.fs             # frecuencia de muestreo = 20 --> nyquist = 10
 
 ehg = senal[:,1]
 t = np.arange(len(ehg)) / fs
+
+N = len(ehg)
+deltaF = fs / N
+freqs = np.arange(N) * deltaF
+
 
 # SENAL CRUDA
 plt.figure(figsize=(10,4))
@@ -35,6 +40,28 @@ plt.title('EHG - canal 0')
 plt.grid()
 plt.show()
 
+#%%
+## --- ANALISIS ESPECTRAL ---
+## uso welch para estimar la PSD de la señal y con esa info armar el filtro
+
+cant_promedio = 25 #chequear
+nperseg = N // cant_promedio
+
+#print(nperseg)
+nfft = 2 * nperseg
+win = "flattop" #consultar con mariano que ventana es mejor, flattop queda mas limpio, hann y hamming son bastante mas ruidosas
+
+f_ehg, PSD_EHG_W = signal.welch(ehg, fs = fs, window=win, nperseg = nperseg, nfft = nfft )
+PSD_EHG_dB = 10 * np.log10(PSD_EHG_W)
+
+plt.figure(figsize=(10,5))
+plt.plot(f_ehg, PSD_EHG_dB)
+plt.title('PSD del EHG (Método de Welch)')
+plt.xlabel('Frecuencia (Hz)')
+plt.ylabel('PSD en Decibeles (dB/Hz)')
+plt.grid(True)
+
+## COMENTARIO PARA CORREGIR: la info psd queda concentrada entre 0.1 y 4.5, respeto la plantilla original o la modifico? pruebo varias señales y promedio?
 # %%
 ## --- FILTRADO --- ##
 wp = (0.3, 2.5) #freq de corte/paso (Hz)
@@ -122,8 +149,8 @@ L = int(window_length * fs)
 step = int(L * (1 - overlap))
 
 ventanas = []   #quedan 28 ventanas
-for start in range(0, len(ehg_filt) - L + 1, step):
-    ventanas.append(ehg_filt[start:start+L])
+for start in range(0, len(ehg_norm) - L + 1, step):
+    ventanas.append(ehg_norm[start:start+L])
 
 #chequeo de ventanas!!
 # print("L:", L)
@@ -137,7 +164,65 @@ for start in range(0, len(ehg_filt) - L + 1, step):
 
 #DOMINIO TEMPORAL --> ENERGIA
 
-#energia = np.sum((x_pulsos) ** 2)
+energias = []
+
+for i in ventanas:
+    E = np.sum(i ** 2)
+    energias.append(E)
+    
+tiempo_ventanas = np.arange(len(energias)) * (step/fs)
+
+plt.figure(figsize=(10,4))
+plt.plot(tiempo_ventanas, energias)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Energía")
+plt.title("Energía del EHG por ventanas")
+plt.grid()
+
+rms = []
+
+for i in ventanas:
+    RMS = np.sqrt(np.mean(i ** 2))
+    rms.append(RMS)
+    
+tiempo_ventanas_1 = np.arange(len(rms)) * (step/fs)
+
+plt.figure(figsize=(10,4))
+plt.plot(tiempo_ventanas_1, rms)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Energía")
+plt.title("RMS del EHG por ventanas")
+plt.grid()
+
+#DOMINIO ESPECTRAL --> FRECUENCIA PICO Y MEDIANA
+
+frec_pico = []
+frec_mediana = []
+
+for i in ventanas:
+    f, psd = signal.welch(i, fs = fs, window = win, nperseg = nperseg, nfft = nfft)
+    
+    fp = f[np.argmax(psd)]
+    frec_pico.append(fp)
+    
+    psd_acum = np.cumsum(psd)
+    mitad = psd_acum[-1] / 2
+    idx = np.where(psd_acum >= mitad)[0][0]
+    frec_mediana.append(f[idx])
+
+plt.figure(figsize=(10,4))
+plt.plot(tiempo_ventanas, frec_pico)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Frecuencia [Hz]")
+plt.title("Frecuencia pico por ventanas")
+plt.grid()
+
+plt.figure(figsize=(10,4))
+plt.plot(tiempo_ventanas, frec_mediana)
+plt.xlabel("Tiempo [s]")
+plt.ylabel("Frecuencia [Hz]")
+plt.title("Frecuencia mediana por ventanas")
+plt.grid()
 
 
 

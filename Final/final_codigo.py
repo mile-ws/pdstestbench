@@ -125,13 +125,6 @@ plt.grid(True, which='both', ls=':')
 #Filtrado unidireccional vs bidireccional
 ehg_lf = signal.sosfilt(mi_sos_butter, ehg)
 
-plt.figure()
-plt.plot(t, ehg, label='Raw', alpha=0.5)
-plt.plot(t, ehg_lf, label='sosfilt')
-plt.plot(t, ehg_filt, label='sosfiltfilt')
-plt.legend()
-plt.title('Comparación filtrado unidireccional vs bidireccional')
-
 
 # --- NORMALIZACION ---
 
@@ -151,14 +144,6 @@ step = int(L * (1 - overlap))
 ventanas = []   #quedan 28 ventanas
 for start in range(0, len(ehg_norm) - L + 1, step):
     ventanas.append(ehg_norm[start:start+L])
-
-#chequeo de ventanas!!
-# print("L:", L)
-# print("Step:", step)
-# print("Cantidad de ventanas:", len(ventanas))
-
-# n_teorico = (len(ehg_filt) - L) // step + 1
-# print("Ventanas teóricas:", n_teorico)
 
 # --- EXTRACCION DE CARACTERISTICAS ---
 
@@ -194,35 +179,63 @@ plt.ylabel("Energía")
 plt.title("RMS del EHG por ventanas")
 plt.grid()
 
+#SAMPLE ENTROPY
+
+def sample_entropy(signal, m=2, r=None):
+    x = np.array(signal) #convierte la senal en array
+    N = len(x)
+    
+    if r is None:
+        r = 0.2 * np.std(x) #define el umbral máximo de diferencia para considerar dos segmentos similares
+    
+    def count_similar(m): #va comparando cuantos segmentos se parecen entre si
+        count = 0
+        for i in range(N - m):
+            for j in range(i + 1, N - m):
+                if np.max(np.abs(x[i:i+m] - x[j:j+m])) < r: #los segmentos son similares si en TODOS sus puntos la diferencia es menor que r
+                    count += 1
+        return count
+    
+    B = count_similar(m) #coincidencias en patrones cortos
+    A = count_similar(m + 1) #coincidencias en patrones largos
+    
+    if B == 0 or A == 0:
+        return np.nan
+    
+    return -np.log(A / B) #si A/B≈1 -> entropia baja, si A/B<<1 -> entropia alta, el logaritmo mejora la visualizacion de la info
+
+
 #DOMINIO ESPECTRAL --> FRECUENCIA PICO Y MEDIANA
 
 frec_pico = []
 frec_mediana = []
+sample_entropy_all = []
 
 for i in ventanas:
-    f, psd = signal.welch(i, fs = fs, window = win, nperseg = nperseg, nfft = nfft)
+    nperseg_win = len(i) // 4
+    nfft_win = 2 * nperseg_win
+    f, psd = signal.welch(i, fs = fs, window = win, nperseg = nperseg_win, nfft = nfft_win)
     
-    fp = f[np.argmax(psd)]
-    frec_pico.append(fp)
     
-    psd_acum = np.cumsum(psd)
+    #frecuencia mediana
+    psd_norm = psd / np.sum(psd)
+    psd_acum = np.cumsum(psd_norm) #suma la energia acumulada
     mitad = psd_acum[-1] / 2
     idx = np.where(psd_acum >= mitad)[0][0]
     frec_mediana.append(f[idx])
+    
+    
+    #sample entropy
+    se = sample_entropy(i)
+    if not np.isnan(se):
+       sample_entropy_all.append(se)
 
-plt.figure(figsize=(10,4))
-plt.plot(tiempo_ventanas, frec_pico)
-plt.xlabel("Tiempo [s]")
-plt.ylabel("Frecuencia [Hz]")
-plt.title("Frecuencia pico por ventanas")
-plt.grid()
+#DATOS DEL PACIENTE OBTENIDOS DEL ANALISIS
+mean_d5 = np.nanmean(frec_mediana) #prom de frecuencia mediana
+mean_sampen = np.nanmean(sample_entropy_all) #prom sample entropy
 
-plt.figure(figsize=(10,4))
-plt.plot(tiempo_ventanas, frec_mediana)
-plt.xlabel("Tiempo [s]")
-plt.ylabel("Frecuencia [Hz]")
-plt.title("Frecuencia mediana por ventanas")
-plt.grid()
+
+
 
 
 

@@ -83,7 +83,7 @@ ehg_filt = signal.sosfiltfilt(mi_sos_butter, ehg)
 fase = np.unwrap(np.angle(h)) #unwrap hace grafico continuo
 
 w_rad = w / (fs / 2) * np.pi
-gd = -np.diff(fase) / np.diff(w_rad) #retardo de grupo [rad/rad]
+retardo = -np.diff(fase) / np.diff(w_rad) #retardo de grupo [rad/rad]
 
 
 #RAW VS FILTRADA
@@ -116,7 +116,7 @@ plt.grid(True, which='both', ls=':')
 # Retardo de grupo
 plt.figure()
 plt.plot()
-plt.plot(w[:-1], gd, label = f_aprox)
+plt.plot(w[:-1], retardo, label = f_aprox)
 plt.title('Retardo de Grupo ')
 plt.xlabel('Pulsación angular [r/s]')
 plt.ylabel('τg [# muestras]')

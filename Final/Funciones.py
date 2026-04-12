@@ -30,25 +30,24 @@ def calcular_psd(ehg, fs, cant_promedio=25, win="flattop"):
     nperseg = N // cant_promedio
     nfft = 2 * nperseg
     
-    f, psd = signal.welch(ehg, fs=fs, window=win, nperseg=nperseg, nfft=nfft)
+    f_welch, psd = signal.welch(ehg, fs=fs, window=win, nperseg=nperseg, nfft=nfft)
     psd_db = 10 * np.log10(psd)
     
-    return f, psd_db
+    return f_welch, psd, psd_db  # lineal Y en dB
 
-def filtrar_senal(ehg, fs, wp=(0.3, 2.5), ws=(0.1, 3.5), alpha_p=3, alpha_s=40):
+def filtrar_senal(ehg, fs, wp=(0.3, 2.5), ws=(0.1, 3.5), alpha_p=3, alpha_s=40, f_aprox = 'butter'):
     
-    sos = signal.iirdesign(
-        wp=wp, ws=ws,
-        gpass=alpha_p,
-        gstop=alpha_s,
-        ftype='butter',
-        output='sos',
-        fs=fs
-    )
+    mi_sos_butter = signal.iirdesign(wp = wp, ws = ws, gpass = alpha_p, gstop = alpha_s, analog = False, ftype = f_aprox, output ='sos', fs=fs)
     
-    ehg_filt = signal.sosfiltfilt(sos, ehg)
+    ehg_filt = signal.sosfiltfilt(mi_sos_butter, ehg)
+   
+    w, h= signal.freqz_sos(mi_sos_butter, worN = np.logspace(-2, 1.9, 1000), fs = fs) #calcula rta en frq del filtro, devuelve w y vector de salida (h es numero complejo)
+    fase = np.unwrap(np.angle(h)) #unwrap hace grafico continuo
+
+    w_rad = w / (fs / 2) * np.pi
+    retardo = -np.diff(fase) / np.diff(w_rad)
     
-    return ehg_filt, sos
+    return mi_sos_butter, ehg_filt, w, h, fase, retardo
 
 def normalizar_senal(x):
     media = np.mean(x)
@@ -61,11 +60,14 @@ def segmentar_senal(x, fs, window_length=120, overlap=0.5):
     step = int(L * (1 - overlap))
     
     ventanas = []
+    inicios = []
     
     for start in range(0, len(x) - L + 1, step):
-        ventanas.append(x[start:start+L])
+        ventanas.append(x[start:start + L])
+        inicios.append(start)
     
-    tiempo = np.arange(len(ventanas)) * (step / fs)
+    # Tiempo del centro de cada ventana
+    tiempo = np.array([s + L/2 for s in inicios]) / fs
     
     return ventanas, tiempo
 
@@ -79,54 +81,58 @@ def calcular_energia_rms(ventanas):
     
     return np.array(energias), np.array(rms)
 
-def sample_entropy(signal, m=2, r=None):
-    x = np.array(signal)
+def sample_entropy(x, m=2, r=0.2):
+    x = np.array(x, dtype=np.float64)
+    x = (x - np.mean(x)) / np.std(x, ddof=0)  # normalización local
+    # r=0.2 ahora es siempre sobre std=1, comparable entre pacientes
     N = len(x)
     
-    if r is None:
-        r = 0.2 * np.std(x)
-    
-    def count_similar(m):
+    def count_similar_vectorized(m):
+        templates = np.array([x[i:i+m] for i in range(N - m)])
         count = 0
-        for i in range(N - m):
-            for j in range(i + 1, N - m):
-                if np.max(np.abs(x[i:i+m] - x[j:j+m])) < r:
-                    count += 1
+        for i in range(len(templates) - 1):
+            diff = np.max(np.abs(templates[i+1:] - templates[i]), axis=1)
+            count += np.sum(diff < r)
         return count
     
-    B = count_similar(m)
-    A = count_similar(m + 1)
+    B = count_similar_vectorized(m)
+    A = count_similar_vectorized(m + 1)
     
     if B == 0 or A == 0:
         return np.nan
     
-    return -np.log(A / B)
+    sampen = -np.log(A / B)
+    
+    return sampen
 
 
 def calcular_features(ventanas, fs, win="flattop"):
-    
     frec_mediana = []
     sample_entropy_all = []
     
-    for v in ventanas:
-        
+    nan_count = 0
+    
+    for idx, v in enumerate(ventanas):
         nperseg = len(v) // 4
         nfft = 2 * nperseg
-        
         f, psd = signal.welch(v, fs=fs, window=win, nperseg=nperseg, nfft=nfft)
         
         # frecuencia mediana
         psd_norm = psd / np.sum(psd)
         psd_acum = np.cumsum(psd_norm)
-        
         mitad = psd_acum[-1] / 2
-        idx = np.where(psd_acum >= mitad)[0][0]
-        frec_mediana.append(f[idx])
+        idx_med = np.where(psd_acum >= mitad)[0][0]
+        frec_mediana.append(f[idx_med])
         
-        # sample entropy
+        # sample entropy — se guarda siempre, NaN incluido
         se = sample_entropy(v)
-        if not np.isnan(se):
-            sample_entropy_all.append(se)
+        if np.isnan(se):
+            nan_count += 1
+            print(f"  [Warning] SampEn NaN en ventana {idx} (std={np.std(v):.4f})") #NaN se da cuando el resultado es invalido, puede ser porque B=0, con lo cual A/B no existe, evita que el programa muera
+        sample_entropy_all.append(se)
+    
+    if nan_count > 0:
+        print(f"  Total NaN en SampEn: {nan_count}/{len(ventanas)} ventanas")
     
     return np.array(frec_mediana), np.array(sample_entropy_all)
 
@@ -136,10 +142,10 @@ def analizar_paciente(path):
     ehg, t, fs = cargar_senal(path)
     
     # PSD
-    f_psd, psd_db = calcular_psd(ehg, fs)
+    f_psd, psd, psd_db = calcular_psd(ehg, fs)
     
     # filtrado
-    ehg_filt, sos = filtrar_senal(ehg, fs)
+    mi_sos_butter, ehg_filt, w, h, fase, retardo = filtrar_senal(ehg, fs)
     
     # normalización
     ehg_norm = normalizar_senal(ehg_filt)
@@ -155,9 +161,14 @@ def analizar_paciente(path):
     
     return {
         "ehg": ehg,
+        "f_psd": f_psd,
+        "psd": psd,        
+        "psd_db": psd_db,
         "ehg_filt": ehg_filt,
         "t": t,
         "fs": fs,
+        "w": w,
+        "h": h,
         "energia": energia,
         "rms": rms,
         "t_vent": t_vent,
@@ -185,6 +196,43 @@ def plot_psd(f, psd_db):
     plt.xlabel('Frecuencia (Hz)')
     plt.ylabel('PSD (dB/Hz)')
     plt.grid(True)
+    
+def plot_filtro(t, ehg, ehg_filt, w, h, wp, ws, alpha_p, alpha_s, fs, f_aprox='butter'):
+    
+    import matplotlib.gridspec as gridspec
+    
+    fig = plt.figure(figsize=(12, 4))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[2, 2, 1])
+    
+    ax1 = fig.add_subplot(gs[0, :2])
+    ax1.plot(t, ehg, label='EHG raw')
+    ax1.plot(t, ehg_filt, label='Filtrada', color='orange')
+    ax1.set_xlabel('Tiempo [s]')
+    ax1.set_ylabel('Amplitud')
+    ax1.set_title('Señal cruda vs filtrada')
+    ax1.legend()
+    ax1.grid()
+    
+    ax2 = fig.add_subplot(gs[0, 2])
+    ax2.plot(w, 20*np.log10(np.maximum(abs(h), 1e-10)), label=f_aprox)
+    
+    plt.sca(ax2)          # ← fuerza ax2 como eje activo antes de plot_plantilla
+    plot_plantilla(
+        filter_type='bandpass',
+        fpass=wp,
+        ripple=alpha_p*2,   # ← también corregimos el ×2 acá, lo discutimos ya
+        fstop=ws,
+        attenuation=alpha_s*2,
+        fs=fs)
+    
+    ax2.set_title('Magnitud')
+    ax2.set_xlabel('Hz')
+    ax2.set_ylabel('dB')
+    ax2.set_xlim([0, 10])
+    ax2.set_ylim([-50, 1])
+    ax2.grid(True, which='both', ls=':')
+    
+    plt.tight_layout()
     
 def plot_senal_filtrada(t, ehg, ehg_filt):
     plt.figure(figsize=(10,4))

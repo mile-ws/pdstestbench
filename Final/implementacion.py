@@ -32,11 +32,11 @@ ws = (0.1, 3.5)
 alpha_p = 3
 alpha_s = 40
 
-fun.plot_psd(f=px_877['f_psd'], psd_db=px_877['psd_db'])
-fun.plot_filtro(t=px_877['t'], ehg=px_877['ehg'], ehg_filt=px_877['ehg_filt'],
-                w=px_877['w'], h=px_877['h'],
+fun.plot_psd(f=px_639['f_psd'], psd_db=px_639['psd_db'])
+fun.plot_filtro(t=px_639['t'], ehg=px_639['ehg'], ehg_filt=px_639['ehg_filt'],
+                w=px_639['w'], h=px_639['h'],
                 wp=wp, ws=ws, alpha_p=alpha_p, alpha_s=alpha_s,
-                fs=px_877['fs'], f_aprox='butter')
+                fs=px_639['fs'], f_aprox='butter')
 
 # ---- SEÑAL RAW VS FILTRADA POR PACIENTE ----
 

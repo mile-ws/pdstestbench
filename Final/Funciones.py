@@ -192,7 +192,7 @@ def plot_senal_cruda(t, ehg):
 def plot_psd(f, psd_db):
     plt.figure(figsize=(10,5))
     plt.plot(f, psd_db)
-    plt.title('PSD del EHG (Método de Welch)')
+    plt.title('PSD del EHG - PX_639 (Método de Welch)')
     plt.xlabel('Frecuencia (Hz)')
     plt.ylabel('PSD (dB/Hz)')
     plt.grid(True)

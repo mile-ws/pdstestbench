@@ -9,6 +9,7 @@ Created on Tue Apr  7 18:14:33 2026
 import Funciones as fun
 import numpy as np
 import matplotlib.pyplot as plt
+from pytc2.sistemas_lineales import plot_plantilla
 
 # ---- CARGA Y ANÁLISIS DE PACIENTES ----
 
@@ -18,10 +19,10 @@ px_718 = fun.analizar_paciente('data/tpehgdb/tpehg718')
 px_639 = fun.analizar_paciente('data/tpehgdb/tpehg639')
 
 pacientes = [
-    {'data': px_877,  'nombre': 'tpehg745',  'grupo': 'pretermino'},
-    {'data': px_914, 'nombre': 'tpehg914', 'grupo': 'pretermino'},
-    {'data': px_718,  'nombre': 'tpehg718',  'grupo': 'termino'},
-    {'data': px_639,  'nombre': 'tpehg639',  'grupo': 'termino'},
+    {'data': px_877,  'nombre': 'PX_877',  'grupo': 'pretermino'},
+    {'data': px_914, 'nombre': 'PX_914', 'grupo': 'pretermino'},
+    {'data': px_718,  'nombre': 'PX_718',  'grupo': 'termino'},
+    {'data': px_639,  'nombre': 'PX_639',  'grupo': 'termino'},
 ]
 
 
@@ -174,6 +175,41 @@ fig.suptitle('Comparación de features — Induced vs Cesarean', fontsize=13)
 plt.tight_layout()
 
 plt.show()
+
+def plot_senal_filtrada(t, ehg, ehg_filt, nombre=''):
+    plt.figure(figsize=(10,4))
+    plt.plot(t, ehg, label='EHG raw')
+    plt.plot(t, ehg_filt, label='Filtrada', color='orange')
+    plt.xlabel('Tiempo [s]')
+    plt.ylabel('Amplitud [mV]')
+    plt.title(f'{nombre} — Señal cruda vs filtrada')
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+
+def plot_respuesta_filtro(w, h, wp, ws, alpha_p, alpha_s, fs, f_aprox='butter'):
+    
+    plt.figure(figsize=(6,4))
+    
+    plt.plot(w, 20*np.log10(np.maximum(abs(h), 1e-10)), label=f_aprox)
+    
+    plot_plantilla(filter_type='bandpass', fpass=wp, ripple=alpha_p*2, fstop=ws, attenuation=alpha_s*2,fs=fs)
+    
+    plt.title('Respuesta en magnitud del filtro')
+    plt.xlabel('Frecuencia [Hz]')
+    plt.ylabel('Magnitud [dB]')
+    
+    plt.xlim([0, 10])
+    plt.ylim([-50, 1])
+    
+    plt.grid(True, which='both', ls=':')
+    plt.legend()
+    plt.tight_layout()
+    
+
+mi_sos_butter, ehg_filt, w, h, fase, retardo = fun.filtrar_senal(px_639['ehg'], px_639['fs'])
+plot_respuesta_filtro(w = w, h = h, wp = wp, ws = ws, alpha_p = alpha_p, alpha_s = alpha_s, fs = px_639['ehg'])
+plot_senal_filtrada(t = px_639['t'], ehg = px_639['ehg'], ehg_filt = px_639['ehg_filt'], nombre='PX_639')
    
    
    

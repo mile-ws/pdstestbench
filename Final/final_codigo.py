@@ -17,7 +17,7 @@ from pytc2.sistemas_lineales import plot_plantilla
 
 
 ## --- CREACION DE LA SENAL ----- ##
-archivo = wfdb.rdrecord('datos/later_induced/icehg606')
+archivo = wfdb.rdrecord('data/tpehgdb/tpehg639')
 
 senal = archivo.p_signal      # matriz (N muestras × canales)
 channels = archivo.sig_name    # nombres de los canales
@@ -88,15 +88,20 @@ retardo = -np.diff(fase) / np.diff(w_rad) #retardo de grupo [rad/rad]
 
 #RAW VS FILTRADA
 plt.figure()
-plt.plot(ehg, label = 'EHG raw')
-plt.plot(ehg_filt, label = 'Filtrada', color = 'orange')
+plt.plot(t, ehg, label = 'EHG raw')
+plt.plot(t, ehg_filt, label = 'Filtrada', color = 'orange')
+plt.title('PX_639 - Señal cruda vs Filtrada (Seccion)')
+plt.xlabel('Tiempo [s]')
+plt.ylabel('Amplitud [mV]')
+plt.xlim([15000 / fs, 16000 / fs])
+plt.grid(True, which='both', ls=':')
 plt.legend()
 
 #Rta en magnitud
 plt.figure()
 plt.plot(w, 20*np.log10(np.maximum(abs(h), 1e-10)), label = f_aprox)
 plot_plantilla(filter_type = 'bandpass' , fpass = wp, ripple = alpha_p*2 , fstop = ws, attenuation = alpha_s*2, fs = fs)
-plt.title('Respuesta en Magnitud')
+plt.title('PX_639 - Respuesta en Magnitud de filtro')
 plt.xlabel('Pulsación angular [r/s]')
 plt.ylabel('|H(jω)| [dB]')
 plt.xlim([0, 10])
